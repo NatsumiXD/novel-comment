@@ -31,8 +31,6 @@ jobs:
           npx cap add android
 
       - name: Set Custom App Name (Naiii's Novel)
-        # 使用 printf 直接写入格式正确的 XML，避免 sed 破坏文件
-        # Android XML 中单引号必须转义为 \'
         run: |
           cat <<EOF > android/app/src/main/res/values/strings.xml
           <?xml version='1.0' encoding='utf-8'?>
@@ -60,7 +58,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21' # <--- 从 17 升级到 21 修复编译错误
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -71,6 +69,7 @@ jobs:
       - name: Build APK with Gradle
         run: |
           cd android
+          # 确保 Java 21 环境被 Gradle 使用
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
