@@ -10,6 +10,9 @@ hero:
     - theme: brand
       text: 开始阅读
       link: /articles
+    - theme: alt
+      text: 下载安卓APP
+      link: /android-app
 
 features:
   - title: NSFW🔞

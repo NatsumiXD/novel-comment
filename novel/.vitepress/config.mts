@@ -305,6 +305,7 @@ export default defineConfig({
           { text: '夏树和美咲的生活', link: '/articles/summer' }
         ]
       },
+      { text: '安卓APP', link: '/android-app' },
       { text: '设置', link: '/settings' }
     ],
 
