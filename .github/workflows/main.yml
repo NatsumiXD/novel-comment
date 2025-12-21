@@ -1,0 +1,46 @@
+name: Deploy VitePress to Pages Branch
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Fix Permissions
+        # 这一步是解决 Permission denied 的关键
+        # 手动为 node_modules 中的 vitepress 二进制文件添加执行权限
+        run: chmod +x ./node_modules/.bin/vitepress
+
+      - name: Build with VitePress
+        # 使用 npx 并指向你的 novel 目录
+        run: npx vitepress build novel
+
+      - name: Deploy to Branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: novel/.vitepress/dist
+          branch: pages
+          create-branch: true
+          clean: true

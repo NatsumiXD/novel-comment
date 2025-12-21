@@ -1,0 +1,11 @@
+{
+  "devDependencies": {
+    "vitepress": "^2.0.0-alpha.15",
+    "vitepress-plugin-comment-with-giscus": "^1.1.15"
+  },
+  "scripts": {
+    "docs:dev": "vitepress dev novel",
+    "docs:build": "vitepress build novel",
+    "docs:preview": "vitepress preview novel"
+  }
+}
