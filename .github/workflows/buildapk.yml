@@ -1,0 +1,120 @@
+name: One-Click Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
+
+      - name: Build VitePress
+        run: npm run docs:build
+
+      - name: Initialize Capacitor Project
+        run: |
+          npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
+          npx cap add android
+
+      - name: Set Custom App Name (Naiii's Novel)
+        run: |
+          cat <<EOF > android/app/src/main/res/values/strings.xml
+          <?xml version='1.0' encoding='utf-8'?>
+          <resources>
+              <string name="app_name">Naiii\'s Novel</string>
+              <string name="title_activity_main">Naiii\'s Novel</string>
+              <string name="package_name">com.naiii.novel.fucktx.eu.org.app</string>
+              <string name="custom_url_scheme">com.naiii.novel.fucktx.eu.org.app</string>
+          </resources>
+          EOF
+
+      - name: Fix Kotlin Duplicate Classes (Safe Injection)
+        run: |
+          sed -i '/allprojects {/a \    configurations.all {\n        resolutionStrategy {\n            force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"\n        }\n    }' android/build.gradle
+
+      - name: Generate App Icons
+        run: |
+          if [ -f "logo.png" ]; then
+            mkdir -p assets/android
+            cp logo.png assets/android/icon-only.png
+            cp logo.png assets/android/icon-foreground.png
+            cp logo.png assets/android/icon-background.png
+            npx capacitor-assets generate --android
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Sync and Copy Assets
+        run: npx cap sync android
+
+      - name: Build APK with Gradle
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      # --- 核心改进部分：精准清理非 APK 文件 ---
+      - name: Archive APK with History
+        run: |
+          # 1. 准备文件名
+          export TZ='Asia/Shanghai'
+          TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+          NEW_FILENAME="NatNovel-${TIMESTAMP}.apk"
+          
+          # 2. 将刚生成的 APK 复制到根目录临时存放
+          cp android/app/build/outputs/apk/debug/app-debug.apk ./$NEW_FILENAME
+          
+          # 3. 配置 Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 4. 切换到 apk 分支
+          if git fetch origin apk; then
+            git checkout apk
+            git pull origin apk
+          else
+            git checkout -b apk
+          fi
+          
+          # 5. 【关键】彻底清理：除了 .apk 和 .git，删除所有东西
+          # 包含隐藏文件和子目录全部扫除，确保分支只剩安装包
+          find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
+          
+          # 6. 将新生成的 APK 加入（此时它已在根目录）
+          git add .
+          git commit -m "Add new build: $NEW_FILENAME"
+          git push origin apk
+
+      - name: Upload Artifact (Backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: NatNovel-Latest
+          path: "*.apk"
