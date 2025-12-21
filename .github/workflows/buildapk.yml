@@ -31,11 +31,20 @@ jobs:
           npx cap add android
 
       - name: Set Custom App Name (Naiii's Novel)
+        # 使用 printf 直接写入格式正确的 XML，避免 sed 破坏文件
+        # Android XML 中单引号必须转义为 \'
         run: |
-          sed -i 's/>Naiii Novel</>Naiii\'\''s Novel</g' android/app/src/main/res/values/strings.xml
+          cat <<EOF > android/app/src/main/res/values/strings.xml
+          <?xml version='1.0' encoding='utf-8'?>
+          <resources>
+              <string name="app_name">Naiii\'s Novel</string>
+              <string name="title_activity_main">Naiii\'s Novel</string>
+              <string name="package_name">com.naiii.novel.fucktx.eu.org.app</string>
+              <string name="custom_url_scheme">com.naiii.novel.fucktx.eu.org.app</string>
+          </resources>
+          EOF
 
       - name: Generate App Icons
-        # 适配新版 capacitor-assets 的自动化逻辑
         run: |
           if [ -f "logo.png" ]; then
             mkdir -p assets/android
