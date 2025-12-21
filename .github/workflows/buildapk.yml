@@ -32,40 +32,6 @@ jobs:
           npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
           npx cap add android
 
-      - name: Fix Duplicate Kotlin Classes (Nuclear Option)
-        # 1. 在 gradle.properties 中禁用重复类检查
-        # 2. 在项目级 build.gradle 中强制所有模块排除旧版 stdlib
-        run: |
-          echo "android.externals.res.autoNoCompress=true" >> android/gradle.properties
-          echo "android.enableDuplicateAnimResources=true" >> android/gradle.properties
-          
-          # 覆盖项目级 build.gradle，加入强制依赖替换逻辑
-          cat <<EOF > android/build.gradle
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.1'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22'
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              configurations.all {
-                  resolutionStrategy {
-                      force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
-                      force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
-                      force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
-                  }
-              }
-          }
-          EOF
-
       - name: Set Custom App Name (Naiii's Novel)
         run: |
           cat <<EOF > android/app/src/main/res/values/strings.xml
@@ -77,6 +43,11 @@ jobs:
               <string name="custom_url_scheme">com.naiii.novel.fucktx.eu.org.app</string>
           </resources>
           EOF
+
+      - name: Fix Kotlin Duplicate Classes (Safe Injection)
+        # 使用 sed 在 allprojects 闭包中精准注入强制依赖逻辑，不破坏原本的 sdkVersion 变量
+        run: |
+          sed -i '/allprojects {/a \    configurations.all {\n        resolutionStrategy {\n            force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"\n        }\n    }' android/build.gradle
 
       - name: Generate App Icons
         run: |
