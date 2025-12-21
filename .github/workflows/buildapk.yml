@@ -2,8 +2,7 @@ name: One-Click Build APK
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:     # 允许手动触发构建
 
 jobs:
   build:
@@ -16,29 +15,32 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # 升级到 Node 20 修复 crypto.hash 问题
+          cache: 'npm'
 
       - name: Install Dependencies
         run: |
           npm install
-          # 核心工具直接在云端安装
+          # 核心工具在云端安装，不改动本地 package.json
           npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
 
       - name: Build VitePress
+        # 确保生成路径为 ./novel/.vitepress/dist
         run: npm run docs:build
 
       - name: Initialize Capacitor Project
-        # 使用你指定的 ID 和 英文名初始化
+        # 使用您指定的 ID 和名称初始化
         run: |
           npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
           npx cap add android
 
       - name: Set Custom App Name (Naiii's Novel)
-        # 通过修改 strings.xml 来强制设置带特殊字符的中文/英文显示名称
+        # 自动处理单引号，确保手机桌面显示 Naiii's Novel
         run: |
           sed -i 's/>Naiii Novel</>Naiii\'\''s Novel</g' android/app/src/main/res/values/strings.xml
 
       - name: Generate App Icons
+        # 如果根目录有 logo.png 则自动替换图标
         run: |
           if [ -f "logo.png" ]; then
             npx capacitor-assets generate --android --icon-source logo.png
@@ -56,12 +58,14 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Sync and Copy Assets
+        # 同步静态网页到 Android 工程
         run: npx cap sync android
 
       - name: Build APK with Gradle
         run: |
           cd android
           chmod +x ./gradlew
+          # 生成 debug 版 APK
           ./gradlew assembleDebug
 
       - name: Upload APK
@@ -69,3 +73,4 @@ jobs:
         with:
           name: Naiii-Novel-App
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
