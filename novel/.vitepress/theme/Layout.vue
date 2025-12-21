@@ -39,9 +39,26 @@ const setGiscusTheme = (theme: 'light' | 'dark') => {
   frame?.contentWindow?.postMessage({ giscus: { setConfig: { theme } } }, 'https://giscus.app')
 }
 
-const injectGiscus = () => {
+const clearGiscus = () => {
   const wrapper = document.querySelector('.giscus-wrapper')
   if (!wrapper) return
+  // 清除 wrapper 内容
+  wrapper.innerHTML = ''
+  // 清除 window 上的 giscus 状态
+  if (typeof window !== 'undefined' && 'giscus' in window) {
+    delete (window as any).giscus
+  }
+}
+
+const injectGiscus = (retries = 5) => {
+  const wrapper = document.querySelector('.giscus-wrapper')
+  if (!wrapper) {
+    // 如果 wrapper 还没准备好，重试
+    if (retries > 0) {
+      setTimeout(() => injectGiscus(retries - 1), 100)
+    }
+    return
+  }
 
   const hasGiscus = wrapper.querySelector('iframe.giscus-frame')
   const theme = isDark.value ? 'dark' : 'light'
@@ -66,15 +83,14 @@ const injectGiscus = () => {
   script.setAttribute('data-lang', 'zh-CN')
   script.setAttribute('crossorigin', 'anonymous')
   script.async = true
-  script.onload = () => setGiscusTheme(theme)
 
   wrapper.appendChild(script)
 }
 
 onMounted(() => {
   applyFontFromStorage()
-  // 首次挂载：等页面渲染完成后尝试注入
-  nextTick(() => setTimeout(injectGiscus, 50))
+  // 首次挂载：等待足够时间让 DOM 完全渲染
+  nextTick(() => setTimeout(injectGiscus, 300))
 })
 
 const startPageTransition = () => {
@@ -97,13 +113,13 @@ watch(
 watch(
   () => router.route.path,
   () => {
-    // 路由切换后尝试注入（Home 使用 layout: home 时首次没有容器）
+    // 路由切换后立即清除旧的 giscus 并重新注入新页面的评论
+    clearGiscus()
     startPageTransition()
     nextTick(() => {
-      setTimeout(() => {
-        injectGiscus()
-        endPageTransition()
-      }, 200)
+      // 给 giscus 足够时间重新初始化
+      setTimeout(injectGiscus, 100)
+      setTimeout(endPageTransition, 500)
     })
   },
   { flush: 'post' }
