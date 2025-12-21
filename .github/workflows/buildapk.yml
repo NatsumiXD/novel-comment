@@ -81,7 +81,7 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
-      # --- 核心改进部分：精准清理非 APK 文件 ---
+      # --- 归档步骤：保留历史记录，强制清理非 APK 文件 ---
       - name: Archive APK with History
         run: |
           # 1. 准备文件名
@@ -89,26 +89,30 @@ jobs:
           TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
           NEW_FILENAME="NatNovel-${TIMESTAMP}.apk"
           
-          # 2. 将刚生成的 APK 复制到根目录临时存放
-          cp android/app/build/outputs/apk/debug/app-debug.apk ./$NEW_FILENAME
+          # 2. 将新生成的 APK 存入系统临时目录（防止切换分支时丢失）
+          cp android/app/build/outputs/apk/debug/app-debug.apk /tmp/$NEW_FILENAME
           
-          # 3. 配置 Git
+          # 3. 配置 Git 用户信息
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           # 4. 切换到 apk 分支
           if git fetch origin apk; then
-            git checkout apk
+            # 使用 -f 强制切换，丢弃 npm install 产生的本地改动
+            git checkout -f apk
             git pull origin apk
           else
-            git checkout -b apk
+            # 分支不存在则创建孤立分支
+            git checkout --orphan apk
           fi
           
-          # 5. 【关键】彻底清理：除了 .apk 和 .git，删除所有东西
-          # 包含隐藏文件和子目录全部扫除，确保分支只剩安装包
+          # 5. 将 APK 从临时目录移回当前目录
+          cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
+          
+          # 6. 精准清理：只留下 .apk 文件、.git 目录，删除所有其他源码和配置
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
           
-          # 6. 将新生成的 APK 加入（此时它已在根目录）
+          # 7. 提交更改并推送
           git add .
           git commit -m "Add new build: $NEW_FILENAME"
           git push origin apk
