@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,6 +15,8 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 获取完整历史以方便切换分支
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -45,7 +50,6 @@ jobs:
           EOF
 
       - name: Fix Kotlin Duplicate Classes (Safe Injection)
-        # 使用 sed 在 allprojects 闭包中精准注入强制依赖逻辑，不破坏原本的 sdkVersion 变量
         run: |
           sed -i '/allprojects {/a \    configurations.all {\n        resolutionStrategy {\n            force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"\n        }\n    }' android/build.gradle
 
@@ -77,9 +81,40 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      # --- 核心修改：保留历史记录并推送到 apk 分支 ---
+      - name: Archive APK with History
+        run: |
+          # 1. 准备文件名
+          export TZ='Asia/Shanghai'
+          TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+          FILENAME="NatNovel-${TIMESTAMP}.apk"
+          
+          # 2. 临时暂存 APK 到根目录
+          cp android/app/build/outputs/apk/debug/app-debug.apk $FILENAME
+          
+          # 3. 配置 Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 4. 切换到 apk 分支（如果不存在则创建）
+          if git fetch origin apk; then
+            git checkout apk
+            git pull origin apk
+          else
+            git checkout -b apk
+          fi
+          
+          # 5. 确保只保留 APK 文件，不混合源码（可选，但推荐保持分支纯净）
+          # 我们只保留 .apk 文件，删除其他被从 main 分支带过来的源码
+          find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
+          
+          # 6. 提交新 APK
+          git add "$FILENAME"
+          git commit -m "Add new build: $FILENAME"
+          git push origin apk
+
+      - name: Upload Artifact (Backup)
         uses: actions/upload-artifact@v4
         with:
-          name: Naiii-Novel-App
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
+          name: NatNovel-Latest
+          path: "*.apk"
