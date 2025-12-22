@@ -1,4 +1,4 @@
-name: One-Click Build APK (Fixed Null Error)
+name: One-Click Build APK (Final Production Version)
 on:
   push:
     branches: [ main ]
@@ -35,13 +35,17 @@ jobs:
           npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
           npx cap add android
 
-      - name: Fix Variables and Versioning (Safe Method)
+      - name: Fix Variables and Versioning
         run: |
           export TZ='Asia/Shanghai'
+          # 版本显示名：2025.12.22.1120
           VERSION_NAME=$(date +'%Y.%m.%d.%H%M')
+          # 内部版本代码：2025122211 (必须是整数且小于 21 亿)
           VERSION_CODE=$(date +'%Y%m%d%H')
           
-          # 1. 直接重写 variables.gradle，确保所有变量都有值，彻底解决 Value is null
+          echo "Building Version: $VERSION_NAME ($VERSION_CODE)"
+
+          # 1. 重写 variables.gradle (注意：这里使用 // 作为注释)
           cat <<EOF > android/variables.gradle
           ext {
               minSdkVersion = 22
@@ -56,7 +60,7 @@ jobs:
               androidxJunitVersion = '1.1.5'
               androidxEspressoCoreVersion = '3.5.1'
               cordovaAndroidVersion = '10.1.1'
-              # 注入我们的动态版本号
+              // 注入动态版本信息
               versionCode = $VERSION_CODE
               versionName = "$VERSION_NAME"
           }
@@ -88,7 +92,6 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          # 明确告诉 Gradle 使用 release 变体
           ./gradlew assembleRelease
 
       - name: Sign APK
@@ -108,11 +111,13 @@ jobs:
           SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)
           NEW_FILENAME="NatNovel-${TIMESTAMP}-${SHORT_SHA}.apk"
           
+          # 确保临时存储签名后的文件
           cp ${{ steps.sign_app.outputs.signedReleaseFile }} /tmp/$NEW_FILENAME
           
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
+          # 切换并清理分支
           if git fetch origin apk; then
             git checkout -f apk
             git pull origin apk
@@ -120,6 +125,7 @@ jobs:
             git checkout --orphan apk
           fi
           
+          # 恢复 APK 并清理多余源码
           cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
           
