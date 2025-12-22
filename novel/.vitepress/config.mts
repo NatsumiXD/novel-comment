@@ -292,6 +292,8 @@ export default defineConfig({
     define: {
       __BUILD_TIME__: JSON.stringify((() => {
         const d = new Date()
+        // 往未来走30分钟
+        d.setMinutes(d.getMinutes() + 30)
         const pad = (n: number) => String(n).padStart(2, '0')
         const yyyy = d.getFullYear()
         const mm = pad(d.getMonth() + 1)

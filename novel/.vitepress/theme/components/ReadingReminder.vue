@@ -251,11 +251,23 @@ button {
   color: var(--vp-c-text-1);
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button:hover {
+    transform: none;
+  }
+  button:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
 }
 
 button.primary {

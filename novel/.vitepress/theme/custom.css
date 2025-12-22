@@ -1,7 +1,29 @@
 /* 自定义样式文件 */
 /* 可以在这里添加全局样式覆盖 */
 
-/* 全局字体配置（通过 html[data-font] 切换） */
+/* ===== 手机端触摸优化 ===== */
+/* 移除浏览器默认的点击高亮蓝色框 */
+* {
+	-webkit-tap-highlight-color: transparent;
+	-webkit-touch-callout: none;
+}
+
+/* 按钮与可点击元素的 focus 状态优化 */
+button, a, input, select, textarea, [role="button"] {
+	outline: none;
+}
+
+button:focus-visible, 
+a:focus-visible, 
+input:focus-visible, 
+select:focus-visible, 
+textarea:focus-visible, 
+[role="button"]:focus-visible {
+	/* 用阴影代替 outline，更美观 */
+	box-shadow: 0 0 0 2px var(--vp-c-bg), 0 0 0 4px var(--vp-c-brand);
+}
+
+/* ===== 全局字体配置 ===== */
 :root {
 	--app-font-sans: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 	--app-font-serif: "Times New Roman", "Noto Serif SC", "Songti SC", serif;

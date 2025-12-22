@@ -199,8 +199,20 @@ const formattedDate = computed(() => {
   cursor: pointer;
   font-weight: 600;
   font-size: 0.8rem;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.15s ease;
 }
 .btn:hover { filter: brightness(0.98); }
+
+@media (hover: none) and (pointer: coarse) {
+  .btn:hover {
+    filter: none;
+  }
+  .btn:active {
+    opacity: 0.8;
+  }
+}
 .btn-primary {
   border-color: rgba(255, 158, 11, 0.55);
   background: rgba(255, 158, 11, 0.2);
