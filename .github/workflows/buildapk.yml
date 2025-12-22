@@ -1,5 +1,4 @@
-name: One-Click Build APK
-
+name: One-Click Build APK (Daily Multi-Build Support)
 on:
   push:
     branches: [ main ]
@@ -11,7 +10,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -37,8 +35,24 @@ jobs:
           npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
           npx cap add android
 
-      - name: Set Custom App Name (Naiii's Novel)
+      - name: Set Custom App Name & Precision Versioning
         run: |
+          # 设置时区为上海
+          export TZ='Asia/Shanghai'
+          # 生成显示版本号: 2025.12.22.1037
+          VERSION_NAME=$(date +'%Y.%m.%d.%H%M')
+          # 生成版本代码 (整数): 202512221037
+          # 注意：Android versionCode 最大值为 2100000000，202512221037 在范围内
+          VERSION_CODE=$(date +'%Y%m%d%H%M')
+          
+          echo "Building Version: $VERSION_NAME ($VERSION_CODE)"
+
+          # 1. 修改 Android 编译配置文件中的版本信息 (针对 Capacitor 项目)
+          # 修改 build.gradle 中的默认配置
+          sed -i "s/versionCode 1/versionCode $VERSION_CODE/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+          
+          # 2. 同时修改 strings.xml
           cat <<EOF > android/app/src/main/res/values/strings.xml
           <?xml version='1.0' encoding='utf-8'?>
           <resources>
@@ -49,19 +63,9 @@ jobs:
           </resources>
           EOF
 
-      - name: Fix Kotlin Duplicate Classes (Safe Injection)
+      - name: Fix Kotlin Duplicate Classes
         run: |
           sed -i '/allprojects {/a \    configurations.all {\n        resolutionStrategy {\n            force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"\n        }\n    }' android/build.gradle
-
-      - name: Generate App Icons
-        run: |
-          if [ -f "logo.png" ]; then
-            mkdir -p assets/android
-            cp logo.png assets/android/icon-only.png
-            cp logo.png assets/android/icon-foreground.png
-            cp logo.png assets/android/icon-background.png
-            npx capacitor-assets generate --android
-          fi
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -69,52 +73,47 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Sync and Copy Assets
+      - name: Sync Android
         run: npx cap sync android
 
-      - name: Build APK with Gradle
+      - name: Build Release APK
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
-      # --- 核心改进部分：精准清理非 APK 文件 ---
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+
       - name: Archive APK with History
         run: |
-          # 1. 准备文件名
           export TZ='Asia/Shanghai'
           TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
-          NEW_FILENAME="NatNovel-${TIMESTAMP}.apk"
+          SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)
+          NEW_FILENAME="NatNovel-${TIMESTAMP}-${SHORT_SHA}.apk"
           
-          # 2. 将刚生成的 APK 复制到根目录临时存放
-          cp android/app/build/outputs/apk/debug/app-debug.apk ./$NEW_FILENAME
+          cp ${{ steps.sign_app.outputs.signedReleaseFile }} /tmp/$NEW_FILENAME
           
-          # 3. 配置 Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 4. 切换到 apk 分支
           if git fetch origin apk; then
-            git checkout apk
+            git checkout -f apk
             git pull origin apk
           else
-            git checkout -b apk
+            git checkout --orphan apk
           fi
           
-          # 5. 【关键】彻底清理：除了 .apk 和 .git，删除所有东西
-          # 包含隐藏文件和子目录全部扫除，确保分支只剩安装包
+          cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
           
-          # 6. 将新生成的 APK 加入（此时它已在根目录）
           git add .
-          git commit -m "Add new build: $NEW_FILENAME"
+          git commit -m "Build: $NEW_FILENAME"
           git push origin apk
-
-      - name: Upload Artifact (Backup)
-        uses: actions/upload-artifact@v4
-        with:
-          name: NatNovel-Latest
-          path: "*.apk"
