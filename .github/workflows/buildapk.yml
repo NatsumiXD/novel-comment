@@ -1,4 +1,4 @@
-name: One-Click Build APK (Auto-Fix Dependencies)
+name: One-Click Build APK (Final Fix for Signer)
 on:
   push:
     branches: [ main ]
@@ -40,13 +40,8 @@ jobs:
           export TZ='Asia/Shanghai'
           VERSION_NAME=$(date +'%Y.%m.%d.%H%M')
           VERSION_CODE=$(date +'%Y%m%d%H')
-          
-          # 1. 精准修改变量文件中的版本号，保留其他所有默认变量 (如 coreSplashScreenVersion)
-          # 使用 sed 替换已有的 1 和 '1.0'
           sed -i "s/versionCode = 1/versionCode = $VERSION_CODE/" android/variables.gradle
           sed -i "s/versionName = '1.0'/versionName = '$VERSION_NAME'/" android/variables.gradle
-          
-          # 2. 修改 App 显示名称
           cat <<EOF > android/app/src/main/res/values/strings.xml
           <?xml version='1.0' encoding='utf-8'?>
           <resources>
@@ -74,6 +69,12 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
+      # 这里的检测逻辑可以确保无论 GitHub 镜像怎么更新，都能找到 zipalign
+      - name: Get Build Tools Version
+        run: |
+          BUILD_TOOLS_VERSION=$(ls $ANDROID_HOME/build-tools | sort -V | tail -n 1)
+          echo "DETECTED_BUILD_TOOLS=$BUILD_TOOLS_VERSION" >> $GITHUB_ENV
+
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
@@ -83,6 +84,7 @@ jobs:
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
+          buildToolsVersion: ${{ env.DETECTED_BUILD_TOOLS }}
 
       - name: Archive APK with History
         run: |
@@ -90,22 +92,17 @@ jobs:
           TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
           SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)
           NEW_FILENAME="NatNovel-${TIMESTAMP}-${SHORT_SHA}.apk"
-          
           cp ${{ steps.sign_app.outputs.signedReleaseFile }} /tmp/$NEW_FILENAME
-          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
           if git fetch origin apk; then
             git checkout -f apk
             git pull origin apk
           else
             git checkout --orphan apk
           fi
-          
           cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
-          
           git add .
           git commit -m "Build: $NEW_FILENAME"
           git push origin apk
