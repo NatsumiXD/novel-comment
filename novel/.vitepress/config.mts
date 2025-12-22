@@ -292,15 +292,19 @@ export default defineConfig({
     define: {
       __BUILD_TIME__: JSON.stringify((() => {
         const d = new Date()
-        // 往未来走30分钟
+        // 先加 30 分钟
         d.setMinutes(d.getMinutes() + 30)
+        // 转换为东八区时间（UTC+8）
+        const offset = d.getTimezoneOffset()
+        const cstTime = new Date(d.getTime() + (offset + 480) * 60 * 1000)
+        
         const pad = (n: number) => String(n).padStart(2, '0')
-        const yyyy = d.getFullYear()
-        const mm = pad(d.getMonth() + 1)
-        const dd = pad(d.getDate())
-        const HH = pad(d.getHours())
-        const MM = pad(d.getMinutes())
-        const SS = pad(d.getSeconds())
+        const yyyy = cstTime.getUTCFullYear()
+        const mm = pad(cstTime.getUTCMonth() + 1)
+        const dd = pad(cstTime.getUTCDate())
+        const HH = pad(cstTime.getUTCHours())
+        const MM = pad(cstTime.getUTCMinutes())
+        const SS = pad(cstTime.getUTCSeconds())
         return `${yyyy}${mm}${dd}_${HH}${MM}${SS}`
       })())
     }
