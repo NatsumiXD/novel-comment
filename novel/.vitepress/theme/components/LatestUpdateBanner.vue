@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { shouldRecordPath } from '../utils/pageWhitelist'
 
 type PageData = {
   title: string
@@ -46,7 +47,7 @@ const chapters = computed<PageData[]>(() => {
       }
     })
     .filter(Boolean)
-    .filter((entry: any) => entry.path.startsWith('/articles'))
+    .filter((entry: any) => entry.path.startsWith('/articles') && shouldRecordPath(entry.path))
     .sort((a: any, b: any) => {
       const at = toTimestamp(a.lastUpdated) ?? 0
       const bt = toTimestamp(b.lastUpdated) ?? 0

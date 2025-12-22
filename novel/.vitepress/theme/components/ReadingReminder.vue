@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vitepress'
+import { shouldRecordPath } from '../utils/pageWhitelist'
 
 const COOKIE_KEY = 'last_read'
 const PROMPT_KEY = 'reading_prompt_enabled'
@@ -86,10 +87,6 @@ const scheduleHide = () => {
 
 type RecordPayload = { current: string; previous: string; tsCurrent: number; tsPrevious: number }
 
-const shouldRecordPath = (path: string) => {
-  // 排除设置页和 404 页面
-  return !path.startsWith('/settings') && !path.includes('/404')
-}
 
 const recordVisit = (path: string) => {
   // 仅记录符合条件的页面
