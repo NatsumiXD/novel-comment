@@ -1,4 +1,4 @@
-name: One-Click Build APK (Final Fix for Signer)
+name: One-Click Build APK (Final Path Fix)
 on:
   push:
     branches: [ main ]
@@ -69,11 +69,15 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
-      # 这里的检测逻辑可以确保无论 GitHub 镜像怎么更新，都能找到 zipalign
-      - name: Get Build Tools Version
+      # --- 关键修复步骤：路径欺骗 ---
+      - name: Link Android Build Tools (Fix Signer Bug)
         run: |
-          BUILD_TOOLS_VERSION=$(ls $ANDROID_HOME/build-tools | sort -V | tail -n 1)
-          echo "DETECTED_BUILD_TOOLS=$BUILD_TOOLS_VERSION" >> $GITHUB_ENV
+          # 找到系统里实际存在的最高版本 build-tools (比如 34.0.0 或 35.0.0)
+          ACTUAL_PATH=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          TARGET_PATH="$ANDROID_HOME/build-tools/29.0.3"
+          echo "Linking $ACTUAL_PATH to $TARGET_PATH"
+          # 创建一个软连接，让插件以为 29.0.3 真的存在
+          sudo ln -s "$ACTUAL_PATH" "$TARGET_PATH"
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
@@ -84,7 +88,6 @@ jobs:
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
-          buildToolsVersion: ${{ env.DETECTED_BUILD_TOOLS }}
 
       - name: Archive APK with History
         run: |
