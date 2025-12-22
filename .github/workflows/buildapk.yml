@@ -1,4 +1,4 @@
-name: One-Click Build APK (Final Path Fix)
+name: One-Click Build APK (Final Fix with In-App Links)
 on:
   push:
     branches: [ main ]
@@ -35,6 +35,18 @@ jobs:
           npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
           npx cap add android
 
+      # --- 🐾 新增步骤：强制所有链接在 App 内打开 ---
+      - name: Patch Capacitor Config (In-App Links)
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'capacitor.config.json';
+            const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+            config.server = { 'allowNavigation': ['*'] };
+            fs.writeFileSync(path, JSON.stringify(config, null, 2));
+            console.log('Successfully patched capacitor.config.json to allow all navigation in-app喵！');
+          "
+
       - name: Patch Versioning & Name
         run: |
           export TZ='Asia/Shanghai'
@@ -60,6 +72,7 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
+      # 关键：Sync 步骤必须在 Patch Config 之后执行，这样配置才能同步到 Android 原生工程喵！
       - name: Sync Android
         run: npx cap sync android
 
@@ -69,14 +82,11 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
-      # --- 关键修复步骤：路径欺骗 ---
       - name: Link Android Build Tools (Fix Signer Bug)
         run: |
-          # 找到系统里实际存在的最高版本 build-tools (比如 34.0.0 或 35.0.0)
           ACTUAL_PATH=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
           TARGET_PATH="$ANDROID_HOME/build-tools/29.0.3"
           echo "Linking $ACTUAL_PATH to $TARGET_PATH"
-          # 创建一个软连接，让插件以为 29.0.3 真的存在
           sudo ln -s "$ACTUAL_PATH" "$TARGET_PATH"
 
       - name: Sign APK
