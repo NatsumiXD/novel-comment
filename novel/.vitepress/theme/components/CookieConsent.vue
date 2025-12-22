@@ -153,11 +153,49 @@ onMounted(() => {
 
 .cookie-modal__actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
 }
 
 button {
+@media (max-width: 480px) {
+  .cookie-modal__content {
+    padding: 1.5rem;
+    width: calc(100% - 1rem);
+    border-radius: 12px;
+  }
+  
+  .cookie-modal__content h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .cookie-modal__content p {
+    font-size: 0.95rem;
+    margin: 0.5rem 0;
+  }
+  
+  .cookie-modal__actions {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+  
+  button {
+    padding: 0.65rem 1rem;
+    min-height: 48px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (min-width: 720px) {
+  .cookie-modal__actions {
+    flex-direction: row;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+}
   flex: 1;
   padding: 0.75rem 1rem;
   border-radius: 8px;
