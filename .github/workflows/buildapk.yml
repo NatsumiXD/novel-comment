@@ -92,10 +92,6 @@ jobs:
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
 
-<<<<<<< HEAD
-=======
-      # --- 归档步骤：保留历史记录，强制清理非 APK 文件 ---
->>>>>>> 6159b1d332f8fe51ec720998f0291faba16093d3
       - name: Archive APK with History
         run: |
           export TZ='Asia/Shanghai'
@@ -103,20 +99,12 @@ jobs:
           SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)
           NEW_FILENAME="NatNovel-${TIMESTAMP}-${SHORT_SHA}.apk"
           
-<<<<<<< HEAD
           cp ${{ steps.sign_app.outputs.signedReleaseFile }} /tmp/$NEW_FILENAME
           
-=======
-          # 2. 将新生成的 APK 存入系统临时目录（防止切换分支时丢失）
-          cp android/app/build/outputs/apk/debug/app-debug.apk /tmp/$NEW_FILENAME
-          
-          # 3. 配置 Git 用户信息
->>>>>>> 6159b1d332f8fe51ec720998f0291faba16093d3
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           if git fetch origin apk; then
-<<<<<<< HEAD
             git checkout -f apk
             git pull origin apk
           else
@@ -126,23 +114,6 @@ jobs:
           cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
           
-=======
-            # 使用 -f 强制切换，丢弃 npm install 产生的本地改动
-            git checkout -f apk
-            git pull origin apk
-          else
-            # 分支不存在则创建孤立分支
-            git checkout --orphan apk
-          fi
-          
-          # 5. 将 APK 从临时目录移回当前目录
-          cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
-          
-          # 6. 精准清理：只留下 .apk 文件、.git 目录，删除所有其他源码和配置
-          find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
-          
-          # 7. 提交更改并推送
->>>>>>> 6159b1d332f8fe51ec720998f0291faba16093d3
           git add .
           git commit -m "Build: $NEW_FILENAME"
           git push origin apk
