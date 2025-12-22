@@ -1,4 +1,4 @@
-name: One-Click Build APK (Daily Multi-Build Support)
+name: One-Click Build APK (Fixed Null Error)
 on:
   push:
     branches: [ main ]
@@ -35,31 +35,39 @@ jobs:
           npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
           npx cap add android
 
-      - name: Set Custom App Name & Precision Versioning
+      - name: Fix Variables and Versioning (Safe Method)
         run: |
-          # 设置时区为上海
           export TZ='Asia/Shanghai'
-          # 生成显示版本号: 2025.12.22.1037
           VERSION_NAME=$(date +'%Y.%m.%d.%H%M')
-          # 生成版本代码 (整数): 202512221037
-          # 注意：Android versionCode 最大值为 2100000000，202512221037 在范围内
-          VERSION_CODE=$(date +'%Y%m%d%H%M')
+          VERSION_CODE=$(date +'%Y%m%d%H')
           
-          echo "Building Version: $VERSION_NAME ($VERSION_CODE)"
+          # 1. 直接重写 variables.gradle，确保所有变量都有值，彻底解决 Value is null
+          cat <<EOF > android/variables.gradle
+          ext {
+              minSdkVersion = 22
+              compileSdkVersion = 34
+              targetSdkVersion = 34
+              androidxActivityVersion = '1.8.0'
+              androidxAppCompatVersion = '1.6.1'
+              androidxCoordinatorLayoutVersion = '1.2.0'
+              androidxCoreVersion = '1.12.0'
+              androidxFragmentVersion = '1.6.2'
+              junitVersion = '4.13.2'
+              androidxJunitVersion = '1.1.5'
+              androidxEspressoCoreVersion = '3.5.1'
+              cordovaAndroidVersion = '10.1.1'
+              # 注入我们的动态版本号
+              versionCode = $VERSION_CODE
+              versionName = "$VERSION_NAME"
+          }
+          EOF
 
-          # 1. 修改 Android 编译配置文件中的版本信息 (针对 Capacitor 项目)
-          # 修改 build.gradle 中的默认配置
-          sed -i "s/versionCode 1/versionCode $VERSION_CODE/" android/app/build.gradle
-          sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
-          
-          # 2. 同时修改 strings.xml
+          # 2. 更新 App 名称
           cat <<EOF > android/app/src/main/res/values/strings.xml
           <?xml version='1.0' encoding='utf-8'?>
           <resources>
               <string name="app_name">Naiii\'s Novel</string>
               <string name="title_activity_main">Naiii\'s Novel</string>
-              <string name="package_name">com.naiii.novel.fucktx.eu.org.app</string>
-              <string name="custom_url_scheme">com.naiii.novel.fucktx.eu.org.app</string>
           </resources>
           EOF
 
@@ -80,6 +88,7 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
+          # 明确告诉 Gradle 使用 release 变体
           ./gradlew assembleRelease
 
       - name: Sign APK
