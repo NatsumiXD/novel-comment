@@ -1,4 +1,4 @@
-name: One-Click Build APK (Final Fix with In-App Links)
+name: One-Click Build APK (Full Automated Version)
 on:
   push:
     branches: [ main ]
@@ -32,20 +32,18 @@ jobs:
 
       - name: Initialize Capacitor Project
         run: |
-          npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
+          # 强制创建完美的配置文件，确保所有外链留在 App 内喵！
+          cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.naiii.novel.fucktx.eu.org.app",
+            "appName": "Naiii Novel",
+            "webDir": "novel/.vitepress/dist",
+            "server": {
+              "allowNavigation": ["*"]
+            }
+          }
+          EOF
           npx cap add android
-
-      # --- 🐾 新增步骤：强制所有链接在 App 内打开 ---
-      - name: Patch Capacitor Config (In-App Links)
-        run: |
-          node -e "
-            const fs = require('fs');
-            const path = 'capacitor.config.json';
-            const config = JSON.parse(fs.readFileSync(path, 'utf8'));
-            config.server = { 'allowNavigation': ['*'] };
-            fs.writeFileSync(path, JSON.stringify(config, null, 2));
-            console.log('Successfully patched capacitor.config.json to allow all navigation in-app喵！');
-          "
 
       - name: Patch Versioning & Name
         run: |
@@ -72,7 +70,6 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      # 关键：Sync 步骤必须在 Patch Config 之后执行，这样配置才能同步到 Android 原生工程喵！
       - name: Sync Android
         run: npx cap sync android
 
@@ -84,6 +81,7 @@ jobs:
 
       - name: Link Android Build Tools (Fix Signer Bug)
         run: |
+          # 路径欺骗：让旧版签名插件以为 29.0.3 存在喵
           ACTUAL_PATH=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
           TARGET_PATH="$ANDROID_HOME/build-tools/29.0.3"
           echo "Linking $ACTUAL_PATH to $TARGET_PATH"
@@ -105,17 +103,24 @@ jobs:
           TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
           SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)
           NEW_FILENAME="NatNovel-${TIMESTAMP}-${SHORT_SHA}.apk"
+          
           cp ${{ steps.sign_app.outputs.signedReleaseFile }} /tmp/$NEW_FILENAME
+          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 尝试切换或创建 apk 分支，并强制让远程进度覆盖本地喵
           if git fetch origin apk; then
             git checkout -f apk
-            git pull origin apk
+            git reset --hard origin/apk
           else
             git checkout --orphan apk
           fi
+          
           cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
+          # 清理除 APK 和 .git 以外的所有内容
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
+          
           git add .
-          git commit -m "Add new build: $NEW_FILENAME"
+          git commit -m "Build: $NEW_FILENAME"
           git push origin apk
