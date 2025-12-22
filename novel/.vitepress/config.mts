@@ -374,7 +374,7 @@ export default defineConfig({
   },
   lastUpdated: true,
     footer: {
-      message: 'Powered By Vitepress',
+      message: 'Powered By Vitepress · 全站内容遵循 <a href="/license" rel="license">CC BY-SA 4.0</a>',
       copyright: 'Copyright © 2025 Naiii All Rights Reserved.'
     },
 
