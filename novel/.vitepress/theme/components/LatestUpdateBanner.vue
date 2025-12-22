@@ -122,6 +122,7 @@ const formattedDate = computed(() => {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
+  justify-items: center;
   gap: 0.5rem 0.75rem;
   margin: 0 0 0.75rem 0;
   padding: 0.5rem 0.75rem;
@@ -150,6 +151,8 @@ const formattedDate = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  align-items: center;
+  text-align: center;
 }
 
 .latest-title {
@@ -181,6 +184,7 @@ const formattedDate = computed(() => {
 .latest-actions {
   display: inline-flex;
   gap: 0.5rem;
+  justify-self: center;
 }
 
 .btn {
@@ -214,7 +218,7 @@ const formattedDate = computed(() => {
   }
 
   .latest-actions {
-    justify-self: start;
+    justify-self: center;
     gap: 0.4rem;
   }
 }

@@ -287,6 +287,22 @@ function generateSidebar() {
 export default defineConfig({
   title: "Naiii's Novel",
   description: "A Novel Site",
+  // 将构建时间以常量注入到客户端（dev/build 启动时计算一次）
+  vite: {
+    define: {
+      __BUILD_TIME__: JSON.stringify((() => {
+        const d = new Date()
+        const pad = (n: number) => String(n).padStart(2, '0')
+        const yyyy = d.getFullYear()
+        const mm = pad(d.getMonth() + 1)
+        const dd = pad(d.getDate())
+        const HH = pad(d.getHours())
+        const MM = pad(d.getMinutes())
+        const SS = pad(d.getSeconds())
+        return `${yyyy}${mm}${dd}_${HH}${MM}${SS}`
+      })())
+    }
+  },
   head: [
     // 添加年龄警告的相关 meta 标签
     ['meta', { name: 'rating', content: 'adult' }],
@@ -374,8 +390,8 @@ export default defineConfig({
   },
   lastUpdated: true,
     footer: {
-      message: 'Powered By Vitepress · 全站内容遵循 <a href="/license" rel="license">CC BY-SA 4.0</a>',
-      copyright: 'Copyright © 2025 Naiii All Rights Reserved.'
+      message: 'Powered by VitePress · Site content under <a href="/license" rel="license">CC BY-SA 4.0</a>',
+      copyright: 'Copyright © 2025 Naiii. All rights reserved.'
     },
 
     socialLinks: [

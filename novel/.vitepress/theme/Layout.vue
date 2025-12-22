@@ -10,9 +10,14 @@ import CookieConsent from './components/CookieConsent.vue'
 import SearchModal from './components/SearchModal.vue'
 import LatestUpdateBanner from './components/LatestUpdateBanner.vue'
 
+// 由 Vite 在构建/启动时注入，形如 20251222_202618
+declare const __BUILD_TIME__: string
+
 const { Layout } = DefaultTheme
 const { isDark } = useData()
 const router = useRouter()
+
+const buildTime: string = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : ''
 
 const FONT_KEY = 'reader_font'
 const FONT_SIZE_KEY = 'reader_font_size'
@@ -91,7 +96,10 @@ const injectGiscus = (retries = 5) => {
 onMounted(() => {
   applyFontFromStorage()
   // 首次挂载：等待足够时间让 DOM 完全渲染
-  nextTick(() => setTimeout(injectGiscus, 300))
+  nextTick(() => {
+    setTimeout(injectGiscus, 300)
+    setTimeout(injectBuildTimeIntoFooter, 300)
+  })
 })
 
 const startPageTransition = () => {
@@ -120,11 +128,26 @@ watch(
     nextTick(() => {
       // 给 giscus 足够时间重新初始化
       setTimeout(injectGiscus, 100)
+      // 确保页脚存在后注入构建时间（幂等）
+      setTimeout(injectBuildTimeIntoFooter, 200)
       setTimeout(endPageTransition, 500)
     })
   },
   { flush: 'post' }
 )
+
+// 将构建时间直接注入默认主题页脚的 message 区域，样式与页脚一致
+const injectBuildTimeIntoFooter = () => {
+  if (typeof document === 'undefined') return
+  const footerMessage = document.querySelector('.VPFooter .message') as HTMLElement | null
+  if (!footerMessage) return
+  if (footerMessage.querySelector('.build-time-inline')) return
+  const span = document.createElement('span')
+  span.className = 'build-time-inline'
+  // 英文与半角符号，末尾保留空格
+  span.textContent = ` · Build time ${buildTime} `
+  footerMessage.appendChild(span)
+}
 </script>
 
 <template>
