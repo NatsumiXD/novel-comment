@@ -122,5 +122,5 @@ jobs:
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
           
           git add .
-          git commit -m "Build: $NEW_FILENAME"
+          git commit -m "Add new build: $NEW_FILENAME"
           git push origin apk
