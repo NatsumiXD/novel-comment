@@ -1,4 +1,4 @@
-name: One-Click Build APK (Full Automated Version)
+name: One-Click Build APK (Final Path Fix)
 on:
   push:
     branches: [ main ]
@@ -32,17 +32,7 @@ jobs:
 
       - name: Initialize Capacitor Project
         run: |
-          # 强制创建完美的配置文件，确保所有外链留在 App 内喵！
-          cat <<EOF > capacitor.config.json
-          {
-            "appId": "com.naiii.novel.fucktx.eu.org.app",
-            "appName": "Naiii Novel",
-            "webDir": "novel/.vitepress/dist",
-            "server": {
-              "allowNavigation": ["*"]
-            }
-          }
-          EOF
+          npx cap init "Naiii Novel" "com.naiii.novel.fucktx.eu.org.app" --web-dir novel/.vitepress/dist
           npx cap add android
 
       - name: Patch Versioning & Name
@@ -79,12 +69,14 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
+      # --- 关键修复步骤：路径欺骗 ---
       - name: Link Android Build Tools (Fix Signer Bug)
         run: |
-          # 路径欺骗：让旧版签名插件以为 29.0.3 存在喵
+          # 找到系统里实际存在的最高版本 build-tools (比如 34.0.0 或 35.0.0)
           ACTUAL_PATH=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
           TARGET_PATH="$ANDROID_HOME/build-tools/29.0.3"
           echo "Linking $ACTUAL_PATH to $TARGET_PATH"
+          # 创建一个软连接，让插件以为 29.0.3 真的存在
           sudo ln -s "$ACTUAL_PATH" "$TARGET_PATH"
 
       - name: Sign APK
@@ -103,24 +95,17 @@ jobs:
           TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
           SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)
           NEW_FILENAME="NatNovel-${TIMESTAMP}-${SHORT_SHA}.apk"
-          
           cp ${{ steps.sign_app.outputs.signedReleaseFile }} /tmp/$NEW_FILENAME
-          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 尝试切换或创建 apk 分支，并强制让远程进度覆盖本地喵
           if git fetch origin apk; then
             git checkout -f apk
-            git reset --hard origin/apk
+            git pull origin apk
           else
             git checkout --orphan apk
           fi
-          
           cp /tmp/$NEW_FILENAME ./$NEW_FILENAME
-          # 清理除 APK 和 .git 以外的所有内容
           find . -maxdepth 1 -not -name "*.apk" -not -name ".git" -not -name "." -exec rm -rf {} +
-          
           git add .
           git commit -m "Add new build: $NEW_FILENAME"
           git push origin apk
