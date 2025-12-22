@@ -2,22 +2,7 @@
 import { onMounted, onBeforeUnmount } from 'vue'
 
 let searchModal: HTMLElement | null = null
-let isClosing = false
-
-const triggerFadeOut = () => {
-  if (!searchModal || isClosing) return
-  
-  isClosing = true
-  searchModal.classList.add('fade-out')
-
-  setTimeout(() => {
-    if (searchModal) {
-      searchModal.style.display = 'none'
-      searchModal.classList.remove('fade-out')
-    }
-    isClosing = false
-  }, 300)
-}
+let ignoreEvent = false
 
 onMounted(() => {
   const waitForSearch = () => {
@@ -27,42 +12,69 @@ onMounted(() => {
       return
     }
 
-    // 监听返回/关闭按钮
-    const handleBackButton = () => {
-      triggerFadeOut()
+    const playExitAnimation = (callback: () => void) => {
+      if (!searchModal) return
+      searchModal.classList.add('fade-out')
+      setTimeout(() => {
+        if (searchModal) searchModal.classList.remove('fade-out')
+        callback()
+      }, 200) // 200ms 动画时间，与 CSS 保持一致
     }
 
-    // 监听 Escape 键
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && searchModal && window.getComputedStyle(searchModal).display !== 'none') {
+    const handleIntercept = (e: Event) => {
+      if (ignoreEvent) return
+
+      const target = e.target as HTMLElement
+      // 判定是否为关闭操作：
+      // 1. 点击遮罩层 (target === searchModal)
+      // 2. 点击关闭按钮 (通常是 button 且不在输入框区域，这里简化判断：所有 button)
+      // 3. 点击链接 (a 标签)
+      // 4. ESC 键
+      
+      const isMask = target === searchModal
+      const isButton = target.closest('button')
+      const isLink = target.closest('a')
+      const isEsc = e.type === 'keydown' && (e as KeyboardEvent).key === 'Escape'
+
+      if (isMask || isButton || isLink || isEsc) {
+        // 阻止默认关闭
         e.preventDefault()
-        triggerFadeOut()
-      }
-    }
-
-    // 监听链接点击（搜索结果）
-    const handleLinkClick = (e: Event) => {
-      const target = e.target as HTMLElement
-      if (target.closest('a')) {
-        triggerFadeOut()
-      }
-    }
-
-    // 使用捕获阶段拦截关闭按钮
-    searchModal.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement
-      if (target.closest('.back-button')) {
         e.stopPropagation()
-        handleBackButton()
-      } else if (target.closest('a')) {
-        handleLinkClick(e)
-      }
-    })
+        e.stopImmediatePropagation()
 
-    document.addEventListener('keydown', handleEscape, true)
+        playExitAnimation(() => {
+          ignoreEvent = true
+          // 重放事件
+          if (isEsc) {
+            window.dispatchEvent(new KeyboardEvent('keydown', { 
+              key: 'Escape', 
+              code: 'Escape',
+              keyCode: 27,
+              bubbles: true,
+              cancelable: true 
+            }))
+          } else {
+            // 对于点击，重新触发
+            // 注意：如果是 button，target.click() 可能无效如果 button 是 disabled 或其他情况
+            // 但通常可行。如果是遮罩，直接 click searchModal
+            if (target instanceof HTMLElement) {
+              target.click()
+            }
+          }
+          
+          // 恢复标志
+          setTimeout(() => { ignoreEvent = false }, 0)
+        })
+      }
+    }
+
+    // 使用捕获阶段拦截，确保比 VitePress 先拿到事件
+    searchModal.addEventListener('click', handleIntercept, true)
+    window.addEventListener('keydown', handleIntercept, true)
 
     onBeforeUnmount(() => {
-      document.removeEventListener('keydown', handleEscape, true)
+      if (searchModal) searchModal.removeEventListener('click', handleIntercept, true)
+      window.removeEventListener('keydown', handleIntercept, true)
     })
   }
 

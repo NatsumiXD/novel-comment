@@ -89,20 +89,52 @@ html.theme-switching .theme-transition-mask {
 	}
 }
 
+@keyframes searchFadeIn {
+	from {
+		opacity: 0;
+		transform: scale(0.98) translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
+@keyframes searchFadeOut {
+	from {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.98) translateY(-10px);
+	}
+}
+
+@keyframes searchFadeIn {
+	from {
+		opacity: 0;
+		transform: scale(0.98) translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
 .VPLocalSearchBox {
-	display: flex !important;
+	/* 恢复淡入动画 */
+	animation: searchFadeIn 0.2s ease-out;
+	/* 为淡出准备 transition */
+	transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+	
 	opacity: 1;
 	transform: scale(1) translateY(0);
-	animation: searchFadeIn 0.3s ease-out;
-	transition: opacity 0.3s ease-out, transform 0.3s ease-out, visibility 0.3s ease-out !important;
 }
 
 .VPLocalSearchBox.fade-out {
-	animation: searchFadeOut 0.3s ease-out forwards !important;
 	opacity: 0 !important;
 	transform: scale(0.98) translateY(-10px) !important;
-	visibility: hidden !important;
-	pointer-events: none !important;
 }
 
 /* 页面切换淡入淡出 */
@@ -114,4 +146,19 @@ html.theme-switching .theme-transition-mask {
 .page-transitioning .VPDoc,
 .page-transitioning .VPHome {
 	opacity: 0;
+}
+
+/* 让首页横幅与特性卡片同宽并居中 */
+.VPHome .latest-banner {
+	max-width: var(--vp-home-features-width);
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* 首页最新更新横幅宽度随特性卡片自适应 */
+.VPHome .latest-banner {
+	/* VitePress 默认主题在特性区域使用 --vp-home-features-width 控制网格宽度 */
+	max-width: var(--vp-home-features-width);
+	margin-left: auto;
+	margin-right: auto;
 }

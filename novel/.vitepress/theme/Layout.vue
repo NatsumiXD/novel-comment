@@ -8,6 +8,7 @@ import BackToTop from './components/BackToTop.vue'
 import ReadingReminder from './components/ReadingReminder.vue'
 import CookieConsent from './components/CookieConsent.vue'
 import SearchModal from './components/SearchModal.vue'
+import LatestUpdateBanner from './components/LatestUpdateBanner.vue'
 
 const { Layout } = DefaultTheme
 const { isDark } = useData()
@@ -134,6 +135,9 @@ watch(
       <ThemeTransition />
       <SearchModal />
       <ReadingReminder />
+    </template>
+    <template #home-hero-before>
+      <LatestUpdateBanner />
     </template>
     <template #doc-after>
       <div class="giscus-wrapper" />

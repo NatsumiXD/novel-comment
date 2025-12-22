@@ -11,6 +11,8 @@ title: 阅读设置
   <button id="enable-prompt">开启提示</button>
   <button id="disable-prompt">关闭提示</button>
   <button id="clear-history">清除上次阅读记录</button>
+  <button id="enable-banner">显示最新更新横幅</button>
+  <button id="disable-banner">隐藏最新更新横幅</button>
   <button id="clear-all-cookies">清除所有 Cookie</button>
 </div>
 
@@ -42,6 +44,7 @@ const COOKIE_KEY = 'last_read'
 const COOKIE_CONSENT_KEY = 'cookie_consent'
 const FONT_KEY = 'reader_font'
 const FONT_SIZE_KEY = 'reader_font_size'
+const BANNER_KEY = 'latest_update_banner'
 
 type FontOption = 'sans' | 'serif' | 'mono' | 'song' | 'kai'
 type FontSizeOption = 'small' | 'medium' | 'large'
@@ -92,6 +95,18 @@ const setPrompt = (enabled: boolean) => {
   alert(enabled ? '已开启提示' : '已关闭提示')
 }
 
+const setBanner = (enabled: boolean) => {
+  const date = new Date()
+  date.setTime(date.getTime() + 365 * 24 * 60 * 60 * 1000)
+  if (enabled) {
+    document.cookie = `${BANNER_KEY}=0; path=/; expires=${date.toUTCString()}`
+    alert('已显示最新更新横幅')
+  } else {
+    document.cookie = `${BANNER_KEY}=1; path=/; expires=${date.toUTCString()}`
+    alert('已隐藏最新更新横幅（刷新页面生效）')
+  }
+}
+
 const clearHistory = () => {
   writeCookie(COOKIE_KEY, '', -1)
   alert('已清除上次阅读记录')
@@ -109,6 +124,8 @@ const bind = () => {
   const enableBtn = document.getElementById('enable-prompt')
   const disableBtn = document.getElementById('disable-prompt')
   const clearBtn = document.getElementById('clear-history')
+  const enableBannerBtn = document.getElementById('enable-banner')
+  const disableBannerBtn = document.getElementById('disable-banner')
   const clearAllBtn = document.getElementById('clear-all-cookies')
   const fontSelect = document.getElementById('font-select') as HTMLSelectElement | null
   const fontSizeSelect = document.getElementById('font-size-select') as HTMLSelectElement | null
@@ -116,6 +133,8 @@ const bind = () => {
   enableBtn?.addEventListener('click', () => setPrompt(true))
   disableBtn?.addEventListener('click', () => setPrompt(false))
   clearBtn?.addEventListener('click', () => clearHistory())
+  enableBannerBtn?.addEventListener('click', () => setBanner(true))
+  disableBannerBtn?.addEventListener('click', () => setBanner(false))
   clearAllBtn?.addEventListener('click', () => clearAllCookies())
   
   fontSelect?.addEventListener('change', () => {
