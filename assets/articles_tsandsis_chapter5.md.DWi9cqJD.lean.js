@@ -1,0 +1,1 @@
+import"./chunks/framework.DHtr43LW.js";import{L as o,M as p}from"./articles_ark_A_A.1.md.5INaBa21.js";export{o as __pageData,p as default};
