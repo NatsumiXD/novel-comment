@@ -413,7 +413,7 @@ export default defineConfig({
       createRssPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'auto',
+        injectRegister: false,
         includeAssets: ['favicon.ico', 'pwa-192.png', 'pwa-512.png'],
         manifest: {
           name: "Naiii's Novel",
@@ -477,6 +477,8 @@ export default defineConfig({
     ['meta', { name: 'rating', content: 'adult' }],
     ['meta', { name: 'content-warning', content: 'NSFW, R18' }],
     ['meta', { name: 'theme-color', content: '#111111' }],
+    ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
+    ['script', {}, "if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js', { scope: '/' }); }); }"] ,
     ['link', { rel: 'apple-touch-icon', href: '/pwa-192.png' }],
     ['link', { rel: 'alternate', type: 'application/rss+xml', title: "Naiii's Novel RSS", href: '/rss.xml' }]
   ],
