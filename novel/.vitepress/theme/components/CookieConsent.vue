@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const COOKIE_CONSENT_KEY = 'cookie_consent'
 const AGE_VERIFIED_KEY = 'age_verified'
@@ -7,6 +7,7 @@ const AGE_VERIFIED_KEY = 'age_verified'
 const show = ref(false)
 const isFadingOut = ref(false)
 const ageVerified = ref(false)
+let checkInterval: number | undefined
 
 const acceptCookies = () => {
   isFadingOut.value = true
@@ -30,7 +31,6 @@ const isAgeVerified = () => {
 }
 
 const checkAndShowConsent = () => {
-  // 只有在年龄验证通过且未给予 Cookie 同意时才显示
   ageVerified.value = isAgeVerified()
   if (ageVerified.value && !isConsentGiven()) {
     show.value = true
@@ -39,29 +39,30 @@ const checkAndShowConsent = () => {
 
 onMounted(() => {
   checkAndShowConsent()
-  
-  // 每500ms检查一次是否需要显示 Cookie 同意（监听 age_verified cookie 的变化）
-  const checkInterval = setInterval(() => {
+
+  checkInterval = window.setInterval(() => {
     const isNowVerified = isAgeVerified()
     if (isNowVerified && !ageVerified.value) {
-      // age_verified cookie 刚被设置
       checkAndShowConsent()
     }
   }, 500)
-  
-  // 清理定时器
-  return () => clearInterval(checkInterval)
+})
+
+onBeforeUnmount(() => {
+  if (checkInterval) {
+    clearInterval(checkInterval)
+  }
 })
 </script>
 
 <template>
   <div v-if="show" class="cookie-consent" :class="{ 'fade-out': isFadingOut }">
-    <div class="cookie-backdrop"></div>
+    <div class="cookie-backdrop" />
     <div class="cookie-modal">
       <div class="cookie-modal__content">
         <h2>Cookie 政策</h2>
         <p>此网站使用 Cookie 来改进用户体验，包括记录您的阅读位置和偏好设置。</p>
-        <p>如果您不同意使用 Cookie，请点击"拒绝"按钮离开此网站。</p>
+        <p>如果您不同意使用 Cookie，请点击“拒绝”按钮离开此网站。</p>
         <div class="cookie-modal__actions">
           <button class="accept" @click="acceptCookies">同意并继续</button>
           <button class="decline" @click="declineCookies">拒绝</button>
@@ -75,22 +76,22 @@ onMounted(() => {
 @keyframes fadeInCookie {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(8px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes fadeOutCookie {
   from {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(8px) scale(0.98);
   }
 }
 
@@ -102,10 +103,11 @@ onMounted(() => {
   bottom: 0;
   z-index: 10200;
   animation: fadeInCookie 0.3s ease-out;
+  padding: 1rem;
+}
 
-  &.fade-out {
-    animation: fadeOutCookie 0.3s ease-out forwards;
-  }
+.cookie-consent.fade-out {
+  animation: fadeOutCookie 0.3s ease-out forwards;
 }
 
 .cookie-backdrop {
@@ -114,15 +116,14 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(8px);
 }
 
 .cookie-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
+  width: 100%;
+  height: 100%;
   z-index: 10201;
   display: flex;
   align-items: center;
@@ -133,78 +134,41 @@ onMounted(() => {
   background: var(--vp-c-bg);
   border: 1px solid var(--vp-c-border);
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.5rem;
   max-width: 520px;
-  width: calc(100% - 2rem);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: min(520px, 100%);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.3);
   color: var(--vp-c-text-1);
 }
 
 .cookie-modal__content h2 {
-  margin-top: 0;
-  margin-bottom: 1rem;
+  margin: 0 0 0.8rem;
   font-size: 1.4rem;
 }
 
 .cookie-modal__content p {
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
   line-height: 1.6;
 }
 
 .cookie-modal__actions {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 0.75rem;
-  margin-top: 1.25rem;
+  margin-top: 1rem;
 }
 
 button {
-@media (max-width: 480px) {
-  .cookie-modal__content {
-    padding: 1.5rem;
-    width: calc(100% - 1rem);
-    border-radius: 12px;
-  }
-  
-  .cookie-modal__content h2 {
-    font-size: 1.2rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .cookie-modal__content p {
-    font-size: 0.95rem;
-    margin: 0.5rem 0;
-  }
-  
-  .cookie-modal__actions {
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
-  }
-  
-  button {
-    padding: 0.65rem 1rem;
-    min-height: 48px;
-    font-size: 0.95rem;
-  }
-}
-
-@media (min-width: 720px) {
-  .cookie-modal__actions {
-    flex-direction: row;
-    gap: 1rem;
-    margin-top: 1.5rem;
-  }
-}
-  flex: 1;
-  padding: 0.75rem 1rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 1rem;
   border-radius: 8px;
   border: 1px solid var(--vp-c-border);
   background: var(--vp-c-bg-soft);
   color: var(--vp-c-text-1);
   cursor: pointer;
-  font-weight: 500;
-  transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
+  font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease, filter 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover {
@@ -218,11 +182,41 @@ button.accept {
   border-color: var(--vp-c-brand);
 }
 
-button.decline {
-  background: var(--vp-c-bg-soft);
+button.accept:hover {
+  filter: brightness(1.05);
 }
 
 button.decline:hover {
   background: var(--vp-c-bg-mute);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button:hover {
+    transform: none;
+    box-shadow: none;
+    filter: none;
+  }
+
+  button:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+@media (min-width: 640px) {
+  .cookie-modal__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .cookie-modal__content {
+    padding: 1.15rem;
+    border-radius: 12px;
+  }
+
+  .cookie-modal__content h2 {
+    font-size: 1.25rem;
+  }
 }
 </style>

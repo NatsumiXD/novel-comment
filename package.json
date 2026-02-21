@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@lobehub/webfont-harmony-sans-sc": "^1.0.0",
     "vitepress": "^2.0.0-alpha.15",
     "vitepress-plugin-comment-with-giscus": "^1.1.15"
   },

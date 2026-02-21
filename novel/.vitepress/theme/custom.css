@@ -1,6 +1,8 @@
 /* 自定义样式文件 */
 /* 可以在这里添加全局样式覆盖 */
 
+@import '@lobehub/webfont-harmony-sans-sc/css/index.css';
+
 /* ===== 手机端触摸优化 ===== */
 /* 移除浏览器默认的点击高亮蓝色框 */
 * {
@@ -25,11 +27,14 @@ textarea:focus-visible,
 
 /* ===== 全局字体配置 ===== */
 :root {
-	--app-font-sans: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+	--app-font-sans: "HarmonyOS Sans SC", "HarmonyOS Sans", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 	--app-font-serif: "Times New Roman", "Noto Serif SC", "Songti SC", serif;
 	--app-font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
 	--app-font-song: "SimSun", "Songti SC", "Noto Serif SC", serif;
 	--app-font-kai: "Kaiti SC", "KaiTi", "DFKai-SB", serif;
+
+	--vp-font-family-base: var(--app-font-sans);
+	--vp-font-family-mono: var(--app-font-mono);
 
 	--reader-font-size: 17px;
 	--reader-line-height: 1.8;
