@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DefaultTheme from 'vitepress/theme'
-import { onMounted, watch, nextTick } from 'vue'
+import { onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useData, useRouter } from 'vitepress'
 import AgeWarning from './components/AgeWarning.vue'
 import ThemeTransition from './components/ThemeTransition.vue'
@@ -18,6 +18,17 @@ const { isDark } = useData()
 const router = useRouter()
 
 const buildTime: string = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : ''
+
+const onGlobalBeforeInstallPrompt = (event: Event) => {
+  event.preventDefault()
+  ;(window as any).__deferredPwaPrompt = event
+  window.dispatchEvent(new CustomEvent('pwa-install-available'))
+}
+
+const onGlobalAppInstalled = () => {
+  ;(window as any).__deferredPwaPrompt = null
+  window.dispatchEvent(new CustomEvent('pwa-installed'))
+}
 
 const FONT_KEY = 'reader_font'
 const FONT_SIZE_KEY = 'reader_font_size'
@@ -95,11 +106,21 @@ const injectGiscus = (retries = 5) => {
 
 onMounted(() => {
   applyFontFromStorage()
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', onGlobalBeforeInstallPrompt)
+    window.addEventListener('appinstalled', onGlobalAppInstalled)
+  }
   // 首次挂载：等待足够时间让 DOM 完全渲染
   nextTick(() => {
     setTimeout(injectGiscus, 300)
     setTimeout(injectBuildTimeIntoFooter, 300)
   })
+})
+
+onBeforeUnmount(() => {
+  if (typeof window === 'undefined') return
+  window.removeEventListener('beforeinstallprompt', onGlobalBeforeInstallPrompt)
+  window.removeEventListener('appinstalled', onGlobalAppInstalled)
 })
 
 const startPageTransition = () => {

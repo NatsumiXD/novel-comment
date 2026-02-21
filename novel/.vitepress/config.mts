@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import { readdirSync, statSync, readFileSync, writeFileSync } from 'fs'
 import { join, relative, sep } from 'path'
+import { VitePWA } from 'vite-plugin-pwa'
 
 const SITE_URL = 'https://naiii.novel.fucktx.eu.org'
 const RSS_ITEM_LIMIT = 10
@@ -408,7 +409,49 @@ export default defineConfig({
   description: "A Novel Site",
   // 将构建时间以常量注入到客户端（dev/build 启动时计算一次）
   vite: {
-    plugins: [createRssPlugin()],
+    plugins: [
+      createRssPlugin(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: 'auto',
+        includeAssets: ['favicon.ico', 'pwa-192.png', 'pwa-512.png'],
+        manifest: {
+          name: "Naiii's Novel",
+          short_name: 'Naiii Novel',
+          description: 'Naiii 的小说站点',
+          theme_color: '#111111',
+          background_color: '#111111',
+          display: 'standalone',
+          start_url: '/',
+          scope: '/',
+          icons: [
+            {
+              src: '/pwa-192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: '/pwa-512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            },
+            {
+              src: '/pwa-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
+            }
+          ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024
+        },
+        devOptions: {
+          enabled: true
+        }
+      })
+    ],
     define: {
       __BUILD_TIME__: JSON.stringify((() => {
         const d = new Date()
@@ -433,22 +476,24 @@ export default defineConfig({
     // 添加年龄警告的相关 meta 标签
     ['meta', { name: 'rating', content: 'adult' }],
     ['meta', { name: 'content-warning', content: 'NSFW, R18' }],
+    ['meta', { name: 'theme-color', content: '#111111' }],
+    ['link', { rel: 'apple-touch-icon', href: '/pwa-192.png' }],
     ['link', { rel: 'alternate', type: 'application/rss+xml', title: "Naiii's Novel RSS", href: '/rss.xml' }]
   ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: '主页', link: '/' },
-      { text: '小说', link: '/articles' },
       {
-        text: '📚',
+        text: '小说',
         items: [
+          { text: '全部小说', link: '/articles' },
           { text: '淫乱的罗德岛', link: '/articles/ark' },
           { text: 'TS哥哥和扶她妹妹', link: '/articles/tsandsis' },
           { text: '夏树和美咲的生活', link: '/articles/summer' }
         ]
       },
-      { text: '安卓APP', link: '/android-app' },
+      { text: 'APP', link: '/android-app' },
       { text: '设置', link: '/settings' }
     ],
 
@@ -464,6 +509,7 @@ export default defineConfig({
       prev: '上一章',
       next: '下一章'
     },
+    outlineTitle: '本页目录',
     search: {
       provider: 'local',
       options: {
