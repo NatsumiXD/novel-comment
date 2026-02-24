@@ -10,6 +10,7 @@ order: 2
 
 就是骨科啦~
 
+<BookWordCount novel="tsandsis" />
 
 
 <ChapterList novel="tsandsis" />

@@ -3,6 +3,7 @@ import Layout from './Layout.vue'
 import NotFound from './NotFound.vue'
 import ChapterList from './components/ChapterList.vue'
 import ARKChapterList from './components/ARKChapterList.vue'
+import BookWordCount from './components/BookWordCount.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import './custom.css'
 
@@ -13,6 +14,7 @@ export default {
   enhanceApp({ app }) {
     app.component('ChapterList', ChapterList)
     app.component('ARKChapterList', ARKChapterList)
+    app.component('BookWordCount', BookWordCount)
     app.component('SettingsPanel', SettingsPanel)
   }
 }

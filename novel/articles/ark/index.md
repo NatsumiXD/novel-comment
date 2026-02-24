@@ -22,6 +22,8 @@ B为系列
 
 B.N.5.1就是N系列第五章第一节
 
+<BookWordCount novel="ark" />
+
 ## 章节列表
 
 <ARKChapterList />
