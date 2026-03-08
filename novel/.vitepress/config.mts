@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import { readdirSync, statSync, readFileSync, writeFileSync } from 'fs'
 import { join, relative, sep } from 'path'
+import { execSync } from 'child_process'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const SITE_URL = 'https://naiii.novel.fucktx.eu.org'
@@ -45,6 +46,31 @@ function collectMarkdownFiles(dir: string): string[] {
   return files
 }
 
+function getGitLastCommitDate(filePath: string, cwd: string) {
+  try {
+    const relPath = relative(cwd, filePath).split(sep).join('/')
+    const commitDate = execSync(`git log -1 --format=%cI -- "${relPath}"`, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'ignore']
+    })
+      .toString()
+      .trim()
+
+    if (!commitDate) {
+      return null
+    }
+
+    const parsed = new Date(commitDate)
+    if (Number.isNaN(parsed.getTime())) {
+      return null
+    }
+
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 function generateRssXml() {
   const rootDir = join(__dirname, '..')
   const articlesDir = join(rootDir, 'articles')
@@ -56,6 +82,7 @@ function generateRssXml() {
     .filter(file => !file.endsWith(`${sep}index.md`))
     .map(file => {
       const fileStat = statSync(file)
+      const gitDate = getGitLastCommitDate(file, rootDir)
       const content = readFileSync(file, 'utf-8')
       const body = stripFrontmatter(content)
       const titleMatch = body.match(/^#\s+(.+)$/m)
@@ -68,11 +95,18 @@ function generateRssXml() {
 
       const route = toPagePathFromFile(articlesDir, file)
       const link = `${SITE_URL}${route}`
-      const mtime = fileStat.mtime.toUTCString()
+      const publishDate = gitDate || fileStat.mtime
 
-      return { title, description, link, guid: link, pubDate: mtime, mtimeMs: fileStat.mtimeMs }
+      return {
+        title,
+        description,
+        link,
+        guid: link,
+        pubDate: publishDate.toUTCString(),
+        publishedAtMs: publishDate.getTime()
+      }
     })
-    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+    .sort((a, b) => b.publishedAtMs - a.publishedAtMs)
     .slice(0, RSS_ITEM_LIMIT)
 
   return `<?xml version="1.0" encoding="UTF-8"?>
