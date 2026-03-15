@@ -11,7 +11,7 @@ hero:
       text: 开始阅读
       link: /articles
     - theme: alt
-      text: 下载安卓APP
+      text: 下载APP
       link: /android-app
 
 features:
