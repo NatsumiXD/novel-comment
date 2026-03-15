@@ -632,7 +632,7 @@ export default defineConfig({
   },
   lastUpdated: true,
     footer: {
-      message: 'Powered by VitePress · Site content under <a href="/license" rel="license">CC BY-SA 4.0</a>',
+      message: '<span class="footer-item">Powered by VitePress</span><span class="footer-item">Site content under <a href="/license" rel="license">CC BY-SA 4.0</a></span>',
       copyright: 'Copyright © 2025 Naiii. All rights reserved.'
     },
 

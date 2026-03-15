@@ -164,9 +164,8 @@ const injectBuildTimeIntoFooter = () => {
   if (!footerMessage) return
   if (footerMessage.querySelector('.build-time-inline')) return
   const span = document.createElement('span')
-  span.className = 'build-time-inline'
-  // 英文与半角符号，末尾保留空格
-  span.textContent = ` · Build time ${buildTime} `
+  span.className = 'footer-item'
+  span.textContent = `Build time ${buildTime}`
   footerMessage.appendChild(span)
 }
 </script>

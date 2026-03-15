@@ -189,3 +189,38 @@ html.theme-switching .theme-transition-mask {
 	margin-left: auto;
 	margin-right: auto;
 }
+
+/* ===== 底栏自适应 ===== */
+/* message 区域设为 flex 换行容器，每个 footer-item 作为不可拆分的整体 */
+.VPFooter .message {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	line-height: 1.7;
+}
+
+.VPFooter .copyright {
+	line-height: 1.7;
+}
+
+/* 每个片段不允许内部断行 */
+.footer-item {
+	white-space: nowrap;
+}
+
+/* 第二个及以后的片段前加分隔符 */
+.footer-item + .footer-item::before {
+	content: ' · ';
+}
+
+@media (max-width: 640px) {
+	.VPFooter {
+		padding: 20px 16px;
+	}
+
+	.VPFooter .message,
+	.VPFooter .copyright {
+		font-size: 12px;
+	}
+}
