@@ -134,6 +134,49 @@ ${items
 `
 }
 
+function getBuildTimeToken() {
+  const d = new Date()
+  d.setMinutes(d.getMinutes() + 30)
+  const offset = d.getTimezoneOffset()
+  const cstTime = new Date(d.getTime() + (offset + 480) * 60 * 1000)
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const yyyy = cstTime.getUTCFullYear()
+  const mm = pad(cstTime.getUTCMonth() + 1)
+  const dd = pad(cstTime.getUTCDate())
+  const HH = pad(cstTime.getUTCHours())
+  const MM = pad(cstTime.getUTCMinutes())
+  const SS = pad(cstTime.getUTCSeconds())
+  return `${yyyy}${mm}${dd}_${HH}${MM}${SS}`
+}
+
+function createBuildConfigPlugin(buildTime: string) {
+  const body = `buildtime=${buildTime}\n`
+  const headers = {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+  }
+
+  return {
+    name: 'novel-build-config-generator',
+    configureServer(server: any) {
+      server.middlewares.use((req: any, res: any, next: () => void) => {
+        if (!req.url || !req.url.startsWith('/config.txt')) {
+          next()
+          return
+        }
+
+        Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v as string))
+        res.end(body)
+      })
+    },
+    closeBundle() {
+      const outFile = join(__dirname, 'dist', 'config.txt')
+      writeFileSync(outFile, body, 'utf-8')
+    }
+  }
+}
+
 function createRssPlugin() {
   return {
     name: 'novel-rss-generator',
@@ -438,6 +481,8 @@ function generateSidebar() {
 }
 
 // https://vitepress.dev/reference/site-config
+const BUILD_TIME = getBuildTimeToken()
+
 export default defineConfig({
   title: "Naiii's Novel",
   description: "A Novel Site",
@@ -445,6 +490,7 @@ export default defineConfig({
   vite: {
     plugins: [
       createRssPlugin(),
+      createBuildConfigPlugin(BUILD_TIME),
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,
@@ -478,32 +524,18 @@ export default defineConfig({
           ]
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          globPatterns: ['**/*'],
+          globIgnores: ['**/config.txt'],
+          cleanupOutdatedCaches: true,
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024
         },
         devOptions: {
-          enabled: true
+          enabled: false
         }
       })
     ],
     define: {
-      __BUILD_TIME__: JSON.stringify((() => {
-        const d = new Date()
-        // 先加 30 分钟
-        d.setMinutes(d.getMinutes() + 30)
-        // 转换为东八区时间（UTC+8）
-        const offset = d.getTimezoneOffset()
-        const cstTime = new Date(d.getTime() + (offset + 480) * 60 * 1000)
-        
-        const pad = (n: number) => String(n).padStart(2, '0')
-        const yyyy = cstTime.getUTCFullYear()
-        const mm = pad(cstTime.getUTCMonth() + 1)
-        const dd = pad(cstTime.getUTCDate())
-        const HH = pad(cstTime.getUTCHours())
-        const MM = pad(cstTime.getUTCMinutes())
-        const SS = pad(cstTime.getUTCSeconds())
-        return `${yyyy}${mm}${dd}_${HH}${MM}${SS}`
-      })())
+      __BUILD_TIME__: JSON.stringify(BUILD_TIME)
     }
   },
   head: [
@@ -512,6 +544,7 @@ export default defineConfig({
     ['meta', { name: 'content-warning', content: 'NSFW, R18' }],
     ['meta', { name: 'theme-color', content: '#111111' }],
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
+    ['script', {}, "(function(){if(location.pathname!=='/'){return;}if(!('serviceWorker' in navigator)){return;}var key='novel_config_buildtime';function readBuildtime(t){var m=(t||'').match(/buildtime\\s*=\\s*(.+)/i);return m?m[1].trim():'';}window.addEventListener('load',function(){fetch('/config.txt',{cache:'no-store'}).then(function(r){if(!r.ok){throw new Error('config fetch failed');}return r.text();}).then(function(text){var latest=readBuildtime(text);if(!latest){return;}var prev=localStorage.getItem(key);if(!prev){localStorage.setItem(key,latest);return;}if(prev===latest){return;}localStorage.setItem(key,latest);navigator.serviceWorker.getRegistration().then(function(reg){if(!reg){location.reload();return;}reg.update().finally(function(){location.reload();});});}).catch(function(){})});})();"],
     ['script', {}, "if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js', { scope: '/' }); }); }"] ,
     ['link', { rel: 'apple-touch-icon', href: '/pwa-192.png' }],
     ['link', { rel: 'alternate', type: 'application/rss+xml', title: "Naiii's Novel RSS", href: '/rss.xml' }]
